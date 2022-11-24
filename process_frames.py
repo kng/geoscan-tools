@@ -3,19 +3,21 @@
 
 import argparse
 import io
+import os
 
 
 def main():
     parser = argparse.ArgumentParser(
-        prog='sa2kng_process <infile>',
+        prog='process_frames <infile>',
         description='Process images from geoscan frames',
         epilog='')
     parser.add_argument('infile', help="Input file, hex dump of frames")
-    parser.add_argument('-o', '--outfile', help="Output file prefix", default="out")
-    # parser.add_argument('-r', '--raw', action='store_true', help="Store raw output")
+    parser.add_argument('-o', '--outfile', help="Output file prefix")
     # parser.add_argument('-k', '--kiss', action='store_true', help="Input file format: KISS")
     parser.add_argument('-v', '--verbose', action='store_true', help="Verbose output")
     args = parser.parse_args()
+    if not args.outfile:
+        args.outfile = os.path.splitext(args.infile)[0]
 
     file = open(args.infile, 'r')
     data = file.read().splitlines()
@@ -24,6 +26,7 @@ def main():
     headerlength = 16
     outfile = io.BufferedWriter
     fileindex = 0
+    chunks = 1
     for row in data:
         row = row.replace(' ', '')
         if '|' in row:
@@ -43,10 +46,18 @@ def main():
                 outfile = open('{}_{}.{}'.format(args.outfile, fileindex, extension), 'wb')
                 print("Writing to: {}".format(outfile.name))
                 fileindex += 1
+            pos = addr - outfile.tell()
+            if pos != 0 and args.verbose:
+                print("Skipped {} bytes at pos {}. ".format(pos, addr - pos))
+                # pos //= 2
+                # outfile.write(b'\xFF\xFF' * pos)
             outfile.seek(addr)
             outfile.write(bytes.fromhex(payload))
+            chunks += 1
             if cmd == dataframes[2]:
                 outfile.close()
+                print("{} bytes written.".format(chunks * 56))
+                chunks = 1
         else:
             if args.verbose:
                 print("Skipped frame: {} - {}".format(header, payload))
