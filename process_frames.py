@@ -2,6 +2,7 @@
 # Made by sa2kng <knegge@gmail.com>
 
 import argparse
+import io
 
 
 def main():
@@ -19,8 +20,9 @@ def main():
     file = open(args.infile, 'r')
     data = file.read().splitlines()
 
+    dataframes = ['01003E01', '01003E05', '01002605']
     headerlength = 16
-    outfile = None
+    outfile = io.BufferedWriter
     fileindex = 0
     for row in data:
         row = row.replace(' ', '')
@@ -29,20 +31,22 @@ def main():
         if len(row) != 128:
             continue
         header = row[:headerlength]
+        cmd = row[:headerlength//2]
+        addr = int((row[12:14] + row[10:12]), 16) % 32768
         payload = row[headerlength:]
         # print("Frame: {} - {}".format(header, payload))
-        if header.startswith('01003E01') or (not outfile and header.startswith('01003E05')):
-            if outfile:
+        if cmd in dataframes:
+            if outfile.closed:
+                extension = 'dat'
+                if payload.startswith('FFD8'):
+                    extension = 'jpg'
+                outfile = open('{}_{}.{}'.format(args.outfile, fileindex, extension), 'wb')
+                print("Writing to: {}".format(outfile.name))
+                fileindex += 1
+            outfile.seek(addr)
+            outfile.write(bytes.fromhex(payload))
+            if cmd == dataframes[2]:
                 outfile.close()
-            extension = 'dat'
-            if payload.startswith('FFD8'):
-                extension = 'jpg'
-            outfile = open('{}_{}.{}'.format(args.outfile, fileindex, extension), 'wb')
-            print("Writing to: {}".format(outfile.name))
-            fileindex += 1
-            outfile.write(bytes.fromhex(payload))
-        elif header.startswith('01003E05') and outfile:
-            outfile.write(bytes.fromhex(payload))
         else:
             if args.verbose:
                 print("Skipped frame: {} - {}".format(header, payload))
