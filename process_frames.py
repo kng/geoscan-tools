@@ -68,6 +68,8 @@ def main():
         if args.verbosity >= 3:
             print("Frame: {} - {}".format(header, payload))
         if cmd in dataframes:
+            if not outfile.closed and cmd == dataframes[0]:
+                outfile.close()
             if outfile.closed:
                 extension = 'dat'
                 if payload.startswith('FFD8'):
