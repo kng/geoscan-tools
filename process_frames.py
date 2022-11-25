@@ -17,6 +17,8 @@ def main():
     parser.add_argument('infile', help="Input file with frames (default in hex)")
     parser.add_argument('-o', '--outfile', help="Output file prefix")
     parser.add_argument('-k', '--kiss', action='store_true', help="Input file format: KISS")
+    parser.add_argument('-r', '--raw', action='store_true', help="Store raw frames")
+    parser.add_argument('-s', '--single', action='store_true', help="Write to single file, accumulating data")
     # parser.add_argument('-p', '--pad', help="Byte to pad missing data")
     parser.add_argument('-v', '--verbosity', action='count', default=0, help="Increase verbosity")
     args = parser.parse_args()
@@ -57,7 +59,7 @@ def main():
 
     dataframes = ['01003E01', '01003E05', '01002605']
     headerlength = 16
-    outfile = io.BufferedWriter
+    outfile = rawfile = io.BufferedWriter
     fileindex = 0
     chunks = 1
     for row in data:
@@ -68,14 +70,20 @@ def main():
         if args.verbosity >= 3:
             print("Frame: {} - {}".format(header, payload))
         if cmd in dataframes:
-            if not outfile.closed and cmd == dataframes[0]:
+            if not outfile.closed and cmd == dataframes[0] and not args.single:
                 outfile.close()
             if outfile.closed:
                 extension = 'dat'
                 if payload.startswith('FFD8'):
                     extension = 'jpg'
-                outfile = open('{}_{}.{}'.format(args.outfile, fileindex, extension), 'wb')
+                if args.single:
+                    outfile = open('{}.jpg'.format(args.outfile), 'wb')
+                else:
+                    outfile = open('{}_{}.{}'.format(args.outfile, fileindex, extension), 'wb')
                 print("Writing to: {}".format(outfile.name))
+                if args.raw:
+                    rawfile = open('{}_{}.raw'.format(args.outfile, fileindex), 'w')
+                    print("Raw file to: {}".format(rawfile.name))
                 fileindex += 1
             pos = addr - outfile.tell()
             if pos != 0 and args.verbosity >= 1:
@@ -86,15 +94,23 @@ def main():
                 # outfile.write(b'\xFF\xFF' * pos)
             outfile.seek(addr)
             outfile.write(bytes.fromhex(payload))
+            if not rawfile.closed:
+                rawfile.write(row + '\n')
             chunks += 1
-            if cmd == dataframes[2]:
+            if cmd == dataframes[2] and not args.single:
                 outfile.close()
+                if not rawfile.closed:
+                    rawfile.close()
                 if args.verbosity >= 1:
                     print("{} bytes written.".format(chunks * 56))
                 chunks = 1
         else:
             if args.verbosity >= 2:
                 print("Skipped frame: {} - {}".format(header, payload))
+    if not outfile.closed:
+        outfile.close()
+    if not rawfile.closed:
+        rawfile.close()
 
 
 # kiss functions:
