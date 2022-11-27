@@ -24,6 +24,7 @@ options:
   -v, --verbosity       Increase verbosity
 ```
 The outfile default name is the same as input file, with `_0.dat` `_1.jpg` etc appended.<br>
+KISS format of the input, used for `gr_satellites ... --kiss_out result.kiss` or similar.<br>
 Raw mode outputs additional files with the raw frames for each of the outputs.<br>
 Single mode accumulates all frames in a single file, useful when combining transmissions.<br>
 Verbosity increases with the amount of v's used, `-vvv` is quite chatty.<br>
@@ -39,7 +40,7 @@ Writing to: test_2.jpg
 Writing to: test_3.dat
 ```
 By looking at the files it looks like 0 and 2 are similar, and 1 and 3 also pretty similar.
-This can be done with `hexdump -v test_0.dat` and comparing, there's probably better tools out there.
+This can be done with `hexdump -v -C test_0.dat` and comparing, there's probably better tools out there.
 So to further process this we can enable raw output which takes all the raw frames and puts them in to a file.
 
 ```
