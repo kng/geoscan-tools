@@ -38,7 +38,7 @@ def main():
             if len(r) < 25:
                 break
             page += 1
-        except FileNotFoundError as e:
+        except Exception as e:
             print(f'Request failed: {e}')
             break
 
