@@ -19,7 +19,9 @@ def main():
     parser.add_argument('-k', '--kiss', action='store_true', help="Input file format: KISS")
     parser.add_argument('-r', '--raw', action='store_true', help="Store raw frames")
     parser.add_argument('-s', '--single', action='store_true', help="Write to single file, accumulating data")
+    parser.add_argument('--half', action='store_true', help="Switch to 16k blocks, 32k default for jpeg")
     # parser.add_argument('-p', '--pad', help="Byte to pad missing data")
+    # parser.add_argument('-a', '--align', help="Align missing data with jpeg blocks")
     parser.add_argument('-v', '--verbosity', action='count', default=0, help="Increase verbosity")
     args = parser.parse_args()
     if not args.outfile:
@@ -97,7 +99,9 @@ def main():
             if not rawfile.closed:
                 rawfile.write(row + '\n')
             chunks += 1
-            if cmd == dataframes[2] and not args.single:
+            # stopping at 32736 or 16352 if not in single mode
+            if not args.single and ((cmd == dataframes[2] and addr >= 16352 and args.half) or
+               (cmd == dataframes[2] and addr >= 32736 and not args.half)):
                 outfile.close()
                 if not rawfile.closed:
                     rawfile.close()
