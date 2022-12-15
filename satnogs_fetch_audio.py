@@ -8,18 +8,20 @@ from datetime import datetime, timedelta
 def main():
     tf = '%Y-%m-%dT%H:%M:%SZ'
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--norad', default='', help='Satellite norad cat id')
-    parser.add_argument('-u', '--uuid', default='', help='Transmitter uuid')
+    gr1 = parser.add_mutually_exclusive_group()
+    gr1.add_argument('-n', '--norad', default='', help='Satellite norad cat id')
+    gr1.add_argument('-u', '--uuid', default='', help='Transmitter uuid')
     parser.add_argument('-s', '--start', required=True, type=lambda s: datetime.strptime(s, tf),
                         help='Start is greater than or equal to YYYY-mm-ddThh:mm:SSZ')
     parser.add_argument('-e', '--end', type=lambda s: datetime.strptime(s, tf),
                         help='End is less than or equal to')
     parser.add_argument('-d', '--duration', default='60', type=int, help='End time after start (minutes)')
-    parser.add_argument('-w', '--withsignal', help='Only observations vetted with signal')
+    parser.add_argument('-w', '--withsignal', action='store_const', const='1', default='',
+                        help='Only observations vetted with signal')
     parser.add_argument('--dryrun', action='store_true', help='Dry run, get list of files but no download')
     args = parser.parse_args()
     if not len(args.norad) > 0 and not len(args.uuid) > 0:
-        print('Select Norad ID or transmitter UUIC')
+        print('Select Norad ID or transmitter UUID')
         parser.print_help()
         exit(1)
     if not args.end:
@@ -32,9 +34,10 @@ def main():
         try:
             r = requests.get('https://network.satnogs.org/api/observations/'
                              f'?page={page}&format=json'
+                             f'&waterfall_status={args.withsignal}'
                              f'&transmitter_uuid={args.uuid}&satellite__norad_cat_id={args.norad}'
                              f'&start={args.start.strftime(tf)}&end={args.end.strftime(tf)}').json()
-            payload.extend([i['payload'] for i in r if i['payload']])
+            payload.extend([i['archive_url'] for i in r if i['archive_url']])
             if len(r) < 25:
                 break
             page += 1
