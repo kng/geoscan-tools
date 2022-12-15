@@ -64,6 +64,7 @@ def main():
     outfile = rawfile = io.BufferedWriter
     fileindex = 0
     chunks = 1
+    midend = False
     for row in data:
         header = row[:headerlength]
         cmd = row[:headerlength//2]
@@ -95,7 +96,10 @@ def main():
                 # pos //= 2
                 # outfile.write(b'\xFF\xFF' * pos)
             outfile.seek(addr)
-            outfile.write(bytes.fromhex(payload))
+            if addr != 16352 or not midend:  # only write the address once, it contains zero padding
+                outfile.write(bytes.fromhex(payload))
+            if addr == 16352:
+                midend = True
             if not rawfile.closed:
                 rawfile.write(row + '\n')
             chunks += 1
