@@ -37,6 +37,7 @@ def main():
                              f'&waterfall_status={args.withsignal}'
                              f'&transmitter_uuid={args.uuid}&satellite__norad_cat_id={args.norad}'
                              f'&start={args.start.strftime(tf)}&end={args.end.strftime(tf)}').json()
+            payload.extend([i['payload'] for i in r if i['payload']])
             payload.extend([i['archive_url'] for i in r if i['archive_url']])
             if len(r) < 25:
                 break
