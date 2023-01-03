@@ -43,6 +43,7 @@ def parse_frames(data):
 
 
 def write_image(outfile, data):
+    print(f'Writing image to: {outfile}')
     with open(outfile, 'wb') as f:
         f.write(data.getbuffer())
 
