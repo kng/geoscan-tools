@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 # Made by sa2kng <knegge@gmail.com>
 
-import io
-import os
-import sys
+from io import BytesIO
+from os import path
+from sys import argv
 
 
 def main():
-    if len(sys.argv) != 2:
-        print(f'Useage: {os.path.basename(sys.argv[0])} <infile>\n'
+    if len(argv) != 2:
+        print(f'Useage: {path.basename(argv[0])} <infile>\n'
               'Process a single Geoscan-Edelveis image from hex frames.\n'
               'Output will have the same name as the input, but with .jpg extension\n')
-        sys.exit(0)
-    frames = parse_file(sys.argv[1])
+        exit(0)
+    frames = parse_file(argv[1])
     data = parse_frames(frames)
-    write_image(os.path.splitext(sys.argv[1])[0] + '.jpg', data)
+    write_image(path.splitext(argv[1])[0] + '.jpg', data)
 
 
 def parse_file(infile):
@@ -30,7 +30,7 @@ def parse_file(infile):
 
 
 def parse_frames(data):
-    image = io.BytesIO()
+    image = BytesIO()
     for row in data:
         cmd = row[0:4]
         addr = int((row[12:14] + row[10:12]), 16) % 32768
