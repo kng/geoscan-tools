@@ -12,6 +12,9 @@ def main():
               'Process a single Geoscan-Edelveis image from hex frames.\n'
               'Output will have the same name as the input, but with .jpg extension\n')
         exit(0)
+    if not path.exists(argv[1]):
+        print(f'File not found: {argv[1]}')
+        exit(1)
     frames = parse_file(argv[1])
     data = parse_frames(frames)
     write_image(path.splitext(argv[1])[0] + '.jpg', data)
