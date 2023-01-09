@@ -19,14 +19,13 @@ def main():
     parser = argparse.ArgumentParser(description='Search SatNOGS DB export for images')
     parser.add_argument('infile', help="Input file with frames")
     parser.add_argument('-o', '--outfile', default='out', help='Output file')
-    gr1 = parser.add_mutually_exclusive_group()
-    gr1.add_argument('-s', '--start', action='store_true', help="List START frames, then exit")
-    gr1.add_argument('-e', '--end', action='store_true', help="List END frames, then exit")
+    parser.add_argument('-s', '--start', action='store_true', help="List START frames, then exit")
+    parser.add_argument('-e', '--end', action='store_true', help="List END frames, then exit")
     parser.add_argument('-m', '--match', default='', help='What to match in END frame')
     parser.add_argument('-d', '--dist', type=int, default=100, help='Search distance in rows to next frame (def: 100)')
     parser.add_argument('-n', '--skip', type=int, default=0, help='Skip this many END frames')
     parser.add_argument('-a', '--all', action='store_true', help='Loop through entire file')
-    parser.add_argument('-f', '--offset', type=int, default=32768, help='Offset address in start frame')
+    parser.add_argument('-f', '--offset', type=int, default=0, help='Offset address in start frame')
 #    parser.add_argument('--time_start', type=lambda s: datetime.strptime(s, TF1),
 #                        help='Start is greater than or equal to YYYY-mm-ddThh:mm:SSZ')
 #    parser.add_argument('--time_end', type=lambda s: datetime.strptime(s, TF1),
@@ -43,7 +42,7 @@ def main():
         for row in data:
             if (args.start and row['cmd'] == D_START) \
                     or (args.end and row['cmd'] == D_END):
-                print(f"{row['ts'].strftime(TF1)} raw addr {row['addr']:#5}: {row['header']} {row['payload']}")
+                print(f"{row['ts'].strftime(TF1)} addr {row['addr']:#5}: {row['header']} {row['payload']}")
         exit(0)
 
     print(f"Processing {len(data)} valid frames...")
@@ -71,14 +70,16 @@ def find_frames(filename, verbosity, offset):
     for row in filedata:
         if '|' in row:
             d = row.split('|')
-            if len(d[1]) == 128 and d[1][:8] in D_ANY:
-                data.append({'ts': datetime.strptime(d[0], TF2),
-                             'cmd': d[1][:8],
-                             'addr': int((d[1][12:14] + d[1][10:12]), 16) - offset,
-                             'header': d[1][:16],
-                             'payload': d[1][16:]})
+            ts = d[0].strip()
+            frame = d[2].strip()
+            if len(frame) == 128 and frame[:8] in D_ANY:
+                data.append({'ts': datetime.strptime(ts, TF2),
+                             'cmd': frame[:8],
+                             'addr': int((frame[12:14] + frame[10:12]), 16) - offset,
+                             'header': frame[:16],
+                             'payload': frame[16:]})
             elif verbosity >= 2:
-                print("Skipped row with wrong length: {}".format(len(d[1])))
+                print("Skipped row with wrong length: {}".format(len(frame)))
         elif verbosity >= 1:
             print("Row is missing '|', wrong format?")
     return data
