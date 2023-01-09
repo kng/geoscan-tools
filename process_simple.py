@@ -21,14 +21,31 @@ def main():
 
 
 def parse_file(infile):
+    try:
+        with open(infile, 'r') as f:
+            return parse_hexfile(f)
+    except UnicodeDecodeError:
+        with open(infile, 'rb') as f:
+            return parse_kissfile(f)
+
+
+def parse_hexfile(f):
     data = []
-    with open(infile, 'r') as f:
-        for row in f:
-            row = row.replace(' ', '').strip()
-            if '|' in row:
-                row = row.split('|')[-1]
-            if len(row) == 128:
-                data.append(row)
+    for row in f:
+        row = row.replace(' ', '').strip()
+        if '|' in row:
+            row = row.split('|')[-1]
+        if len(row) == 128:
+            data.append(row)
+    return data
+
+
+def parse_kissfile(infile):
+    data = []
+    for row in infile.read().split(b'\xC0'):
+        if len(row) == 0 or row[0] != 0:
+            continue
+        data.append(row[1:].replace(b'\xdb\xdc', b'\xc0').replace(b'\xdb\xdd', b'\xdb').hex(bytes_per_sep=2))
     return data
 
 
