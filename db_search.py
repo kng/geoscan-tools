@@ -26,6 +26,7 @@ def main():
     parser.add_argument('-d', '--dist', type=int, default=100, help='Search distance in rows to next frame (def: 100)')
     parser.add_argument('-n', '--skip', type=int, default=0, help='Skip this many END frames')
     parser.add_argument('-a', '--all', action='store_true', help='Loop through entire file')
+    parser.add_argument('-f', '--offset', type=int, default=32768, help='Offset address in start frame')
 #    parser.add_argument('--time_start', type=lambda s: datetime.strptime(s, TF1),
 #                        help='Start is greater than or equal to YYYY-mm-ddThh:mm:SSZ')
 #    parser.add_argument('--time_end', type=lambda s: datetime.strptime(s, TF1),
@@ -35,14 +36,14 @@ def main():
     if args.match:
         args.outfile += f'_{args.match}'
 
-    data = find_frames(args.infile, args.verbosity)
+    data = find_frames(args.infile, args.verbosity, args.offset)
 
     if args.start or args.end:
         print('# Time             | address   | header         | payload')
         for row in data:
-            if (args.start and row['cmd'] == D_START and row['addr'] == 0) \
-                    or (args.end and row['cmd'] == D_END and row['addr'] >= 32000):
-                print(f"{row['ts'].strftime(TF1)} addr {row['addr']:#5}: {row['header']} {row['payload']}")
+            if (args.start and row['cmd'] == D_START) \
+                    or (args.end and row['cmd'] == D_END):
+                print(f"{row['ts'].strftime(TF1)} raw addr {row['addr']:#5}: {row['header']} {row['payload']}")
         exit(0)
 
     print(f"Processing {len(data)} valid frames...")
@@ -59,7 +60,7 @@ def main():
         write_jpeg(f'{args.outfile}_{args.skip}', image)
 
 
-def find_frames(filename, verbosity):
+def find_frames(filename, verbosity, offset):
     data = []
     try:
         file = open(filename, 'r')
@@ -73,7 +74,7 @@ def find_frames(filename, verbosity):
             if len(d[1]) == 128 and d[1][:8] in D_ANY:
                 data.append({'ts': datetime.strptime(d[0], TF2),
                              'cmd': d[1][:8],
-                             'addr': int((d[1][12:14] + d[1][10:12]), 16) % 32768,
+                             'addr': int((d[1][12:14] + d[1][10:12]), 16) - offset,
                              'header': d[1][:16],
                              'payload': d[1][16:]})
             elif verbosity >= 2:

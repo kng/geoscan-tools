@@ -41,7 +41,7 @@ def parse_frames(data):
         addr = int((row[12:14] + row[10:12]), 16) - offset
         dlen = (int(row[4:6], 16) + 2) * 2
         payload = row[16:dlen]
-        if cmd == '0100':
+        if cmd == '0100' and addr > 0:
             image.seek(addr)
             image.write(bytes.fromhex(payload))
     return image
