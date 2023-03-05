@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 import struct
 import requests
 
-# SERVER = 'https://db.satnogs.org/api/telemetry/'  # Production database
-SERVER = 'https://db-dev.satnogs.org/api/telemetry/'  # Dev database
+SERVER = 'https://db.satnogs.org/api/telemetry/'  # Production database
+# SERVER = 'https://db-dev.satnogs.org/api/telemetry/'  # Dev database
 MYCALL = ''
 QTH_LAT = '0.0N'  # WGS84
-QTH_LON = '0.E'
+QTH_LON = '0.0E'
 
 
 def main():
@@ -30,16 +30,17 @@ def main():
         exit(1)
 
     frames = parse_file(argv[2])
+    print(f'Found {len(frames)} frames.')
     upload_frames(int(argv[1]), frames)
 
 
 def upload_frames(norad, frames):
-    print('Uploading: ')
+    print('Uploading: ', end='')
     for row in frames:
         try:
             payload = {'noradID': norad, 'source': MYCALL, 'locator': 'longLat', 'latitude': QTH_LAT,
                        'longitude': QTH_LON, 'version': '1.8.1', 'timestamp': row[0], 'frame': row[1]}
-            r = requests.post(SERVER, params=payload)
+            r = requests.post(SERVER, data=payload)
             r.raise_for_status()
             print('.', end='')
         except Exception as e:
@@ -76,7 +77,7 @@ def parse_kissfile(infile):
     data = []
     ts = datetime(1970, 1, 1)  # MUST be overwritten by timestamps in file
     for row in infile.read().split(b'\xC0'):
-        if len(row) > 0 and row[0] == 9:  # timestamp frame
+        if len(row) == 9 and row[0] == 9:  # timestamp frame
             ts = datetime(1970, 1, 1) + timedelta(seconds=struct.unpack('>Q', row[1:])[0] / 1000)
         if len(row) > 0 and row[0] == 0:  # data frame
             data.append([ts.isoformat(timespec='milliseconds') + 'Z',
