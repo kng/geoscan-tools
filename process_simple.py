@@ -51,7 +51,7 @@ def parse_kissfile(infile):
 
 def parse_frames(data):
     image = BytesIO()
-    offset = 16384  # old 32768
+    offset = 4  # old 32768
     for row in data:
         if row[0:8].upper() == '01003E01':
             offset = int((row[12:14] + row[10:12]), 16)
