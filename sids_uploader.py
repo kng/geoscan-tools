@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # Made by sa2kng <knegge@gmail.com>
 
-from os import path
-from sys import argv
 from datetime import datetime, timedelta
-import struct
-import requests
+from os import path
+from requests import post
+from struct import unpack
+from sys import argv
 
 SERVER = 'https://db.satnogs.org/api/telemetry/'  # Production database
 # SERVER = 'https://db-dev.satnogs.org/api/telemetry/'  # Dev database
@@ -16,7 +16,7 @@ QTH_LON = '0.0E'
 
 def main():
     if len(argv) != 3:
-        print(f'Useage: {path.basename(argv[0])} <NORAD> <infile>\n'
+        print(f'Usage: {path.basename(argv[0])} <NORAD> <infile>\n'
               'Upload stored frames to SatNOGS DB via SiDS.')
         exit(1)
     if not argv[1].isnumeric() or not 0 <= int(argv[1]) <= 99999:
@@ -26,7 +26,7 @@ def main():
         print(f'File not found: {argv[2]}')
         exit(1)
     if len(MYCALL) == 0:
-        print('No callsign set, please edit!')
+        print('No call sign set, please edit!')
         exit(1)
 
     frames = parse_file(argv[2])
@@ -40,7 +40,7 @@ def upload_frames(norad, frames):
         try:
             payload = {'noradID': norad, 'source': MYCALL, 'locator': 'longLat', 'latitude': QTH_LAT,
                        'longitude': QTH_LON, 'version': '1.8.1', 'timestamp': row[0], 'frame': row[1]}
-            r = requests.post(SERVER, data=payload)
+            r = post(SERVER, data=payload)
             r.raise_for_status()
             print('.', end='')
         except Exception as e:
@@ -58,9 +58,9 @@ def parse_file(infile):
             return parse_kissfile(f)
 
 
-def parse_hexfile(f):
+def parse_hexfile(infile):
     data = []
-    for row in f:
+    for row in infile:
         row = row.replace(' ', '').strip()
         if '|' in row:
             row = row.split('|')
@@ -78,11 +78,11 @@ def parse_kissfile(infile):
     ts = datetime(1970, 1, 1)  # MUST be overwritten by timestamps in file
     for row in infile.read().split(b'\xC0'):
         if len(row) == 9 and row[0] == 9:  # timestamp frame
-            ts = datetime(1970, 1, 1) + timedelta(seconds=struct.unpack('>Q', row[1:])[0] / 1000)
+            ts = datetime(1970, 1, 1) + timedelta(seconds=unpack('>Q', row[1:])[0] / 1000)
         if len(row) > 0 and row[0] == 0:  # data frame
             data.append([ts.isoformat(timespec='milliseconds') + 'Z',
                          row[1:].replace(b'\xdb\xdc', b'\xc0').replace(b'\xdb\xdd', b'\xdb').
-                         hex(bytes_per_sep=2).upper()])
+                        hex(bytes_per_sep=2).upper()])
     return data
 
 
