@@ -52,18 +52,15 @@ def parse_kissfile(infile):
 def parse_frames(data):
     image = BytesIO()
     offset = 0
-    hr = False
     for row in data:
         if row[16:22].upper() == 'FFD8FF':
-            offset = int((row[12:14] + row[10:12]), 16)
-            hr = row[6:10].upper() == '2098'
+            offset = int((row[14:16] + row[12:14] + row[10:12]), 16)
+            if row[6:10].upper() == '2098':  # image is HR
+                offset = 0
             break
     for row in data:
         cmd = row[0:4]
-        if hr:
-            addr = int((row[14:16] + row[12:14] + row[10:12]), 16)
-        else:
-            addr = int((row[12:14] + row[10:12]), 16) - offset
+        addr = int((row[14:16] + row[12:14] + row[10:12]), 16) - offset
         dlen = (int(row[4:6], 16) + 2) * 2
         payload = row[16:dlen]
         if cmd == '0200' and addr >= 0:
